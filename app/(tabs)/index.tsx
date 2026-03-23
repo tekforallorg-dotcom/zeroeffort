@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import SafeScreen from '@/components/SafeScreen';
+import MicButton from '@/components/MicButton';
 import { useDrone, type CommandEntry } from '@/store/droneStore';
 import {
   Colors, Typography, Surfaces, Shadow, Spacing, Radii, FontFamily,
@@ -150,6 +151,19 @@ export default function HomeScreen() {
                 } />
               )}
             </Pressable>
+          </View>
+
+          {/* ── Voice Input (Mic Button) ─────────────────── */}
+          <View style={styles.micSection}>
+            <MicButton
+              onTranscript={(text) => {
+                setInput(text);
+                // Auto-send after voice transcript
+                sendCommand(text);
+              }}
+              disabled={isProcessing}
+              size={56}
+            />
           </View>
 
           {/* ── Warning Confirmation ────────────────────── */}
@@ -329,6 +343,11 @@ const styles = StyleSheet.create({
   },
   sendButtonPressed: { transform: [{ scale: 0.95 }] },
   sendButtonDisabled: { opacity: 0.4 },
+
+  // Mic
+  micSection: {
+    alignItems: 'center', marginBottom: Spacing.xxl,
+  },
 
   // Warning
   warnCard: {
