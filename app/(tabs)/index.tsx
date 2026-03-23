@@ -11,6 +11,7 @@ import {
   TextInput, ActivityIndicator, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import SafeScreen from '@/components/SafeScreen';
 import MicButton from '@/components/MicButton';
 import { useDrone, type CommandEntry } from '@/store/droneStore';
@@ -34,7 +35,8 @@ export default function HomeScreen() {
     droneState, connectionStatus, commandHistory, isProcessing,
     connectDrone, disconnectDrone, sendCommand, confirmAndExecute,
   } = useDrone();
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
+  const router = useRouter();
 
   const [input, setInput] = useState('');
   const [pendingWarn, setPendingWarn] = useState<CommandEntry | null>(null);
@@ -94,8 +96,8 @@ export default function HomeScreen() {
           <View style={styles.header}>
             <View style={styles.headerRow}>
               <Text style={Typography.label}>ZEROEFFORT</Text>
-              <Pressable onPress={signOut} style={styles.logoutBtn} accessibilityLabel="Sign out">
-                <Ionicons name="log-out-outline" size={18} color={Colors.textTertiary} />
+              <Pressable onPress={() => router.push('/settings')} style={styles.logoutBtn} accessibilityLabel="Settings">
+                <Ionicons name="settings-outline" size={20} color={Colors.textTertiary} />
               </Pressable>
             </View>
             <Text style={[Typography.display, styles.title]}>
