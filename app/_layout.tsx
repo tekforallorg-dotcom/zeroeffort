@@ -1,11 +1,11 @@
 /**
- * Root layout — font loading, splash screen hold, and global providers.
- * Fonts: Space Grotesk (display), Inter (body), JetBrains Mono (telemetry).
+ * Root layout — font loading, auth guard, and global providers.
  *
- * SDK 54: @expo-google-fonts 0.4.x exports useFonts + named font assets directly.
+ * Flow: fonts load → check auth → route to (auth)/login or (tabs).
+ * DroneProvider only wraps the tabs (not auth screens).
  */
 import { useEffect } from 'react';
-import { Stack } from 'expo-router';
+import { Slot, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import {
   useFonts,
@@ -26,10 +26,33 @@ import {
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StyleSheet } from 'react-native';
 import { Colors } from '@/theme';
-import { DroneProvider } from '@/store/droneStore';
+import { AuthProvider, useAuth } from '@/lib/auth';
 
-// Keep splash screen visible until fonts load
+// Keep splash screen visible until fonts + auth load
 SplashScreen.preventAutoHideAsync();
+
+/** Inner component that has access to auth context */
+function RootNavigator() {
+  const { session, isLoading } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isLoading) return; // Still checking auth
+
+    const inAuthGroup = segments[0] === '(auth)';
+
+    if (!session && !inAuthGroup) {
+      // Not logged in and not on auth screen → go to login
+      router.replace('/(auth)/login');
+    } else if (session && inAuthGroup) {
+      // Logged in but on auth screen → go to app
+      router.replace('/(tabs)');
+    }
+  }, [session, isLoading, segments, router]);
+
+  return <Slot />;
+}
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -56,15 +79,9 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={styles.root}>
-      <DroneProvider>
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: Colors.obsidian },
-            animation: 'fade',
-          }}
-        />
-      </DroneProvider>
+      <AuthProvider>
+        <RootNavigator />
+      </AuthProvider>
     </GestureHandlerRootView>
   );
 }

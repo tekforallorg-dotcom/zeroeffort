@@ -6,6 +6,7 @@ import { Tabs } from 'expo-router';
 import { Platform, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontFamily, Spacing } from '@/theme';
+import { DroneProvider } from '@/store/droneStore';
 
 type TabIconProps = {
   color: string;
@@ -15,16 +16,17 @@ type TabIconProps = {
 
 export default function TabLayout() {
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: Colors.electricSky,
-        tabBarInactiveTintColor: Colors.textTertiary,
-        tabBarLabelStyle: styles.tabLabel,
-        tabBarStyle: styles.tabBar,
-        tabBarItemStyle: styles.tabItem,
-      }}
-    >
+    <DroneProvider>
+      <Tabs
+        screenOptions={{
+          headerShown: false,
+          tabBarActiveTintColor: Colors.electricSky,
+          tabBarInactiveTintColor: Colors.textTertiary,
+          tabBarLabelStyle: styles.tabLabel,
+          tabBarStyle: styles.tabBar,
+          tabBarItemStyle: styles.tabItem,
+        }}
+      >
       <Tabs.Screen
         name="index"
         options={{
@@ -62,6 +64,7 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
+    </DroneProvider>
   );
 }
 

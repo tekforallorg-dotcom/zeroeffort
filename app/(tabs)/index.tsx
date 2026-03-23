@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import SafeScreen from '@/components/SafeScreen';
 import MicButton from '@/components/MicButton';
 import { useDrone, type CommandEntry } from '@/store/droneStore';
+import { useAuth } from '@/lib/auth';
 import {
   Colors, Typography, Surfaces, Shadow, Spacing, Radii, FontFamily,
 } from '@/theme';
@@ -33,6 +34,7 @@ export default function HomeScreen() {
     droneState, connectionStatus, commandHistory, isProcessing,
     connectDrone, disconnectDrone, sendCommand, confirmAndExecute,
   } = useDrone();
+  const { user, signOut } = useAuth();
 
   const [input, setInput] = useState('');
   const [pendingWarn, setPendingWarn] = useState<CommandEntry | null>(null);
@@ -90,10 +92,18 @@ export default function HomeScreen() {
         >
           {/* ── Header ──────────────────────────────────── */}
           <View style={styles.header}>
-            <Text style={Typography.label}>ZEROEFFORT</Text>
+            <View style={styles.headerRow}>
+              <Text style={Typography.label}>ZEROEFFORT</Text>
+              <Pressable onPress={signOut} style={styles.logoutBtn} accessibilityLabel="Sign out">
+                <Ionicons name="log-out-outline" size={18} color={Colors.textTertiary} />
+              </Pressable>
+            </View>
             <Text style={[Typography.display, styles.title]}>
               {isConnected ? 'Ready to Fly' : 'Connect to Start'}
             </Text>
+            {user?.email && (
+              <Text style={[Typography.bodySmall, styles.userEmail]}>{user.email}</Text>
+            )}
           </View>
 
           {/* ── Drone Status Module ────────────────────── */}
@@ -313,6 +323,9 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   content: { paddingBottom: Spacing.hero },
   header: { marginTop: Spacing.lg, marginBottom: Spacing.xxl },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  logoutBtn: { padding: Spacing.sm },
+  userEmail: { color: Colors.textTertiary, marginTop: Spacing.xs },
   title: { marginTop: Spacing.xs },
 
   // Status
