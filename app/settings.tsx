@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import SafeScreen from '@/components/SafeScreen';
 import DroneSelector from '@/components/DroneSelector';
 import { useAuth } from '@/lib/auth';
+import { useDrone } from '@/store/droneStore';
 import { supabase } from '@/lib/supabase';
 import {
   Colors, Typography, Surfaces, Shadow, Spacing, Radii, FontFamily,
@@ -22,6 +23,7 @@ import {
 export default function SettingsScreen() {
   const router = useRouter();
   const { user, signOut } = useAuth();
+  const { switchAdapter, activeAdapterId } = useDrone();
   const [selectedDroneId, setSelectedDroneId] = useState<string | null>(null);
   const [selectedDroneName, setSelectedDroneName] = useState<string | null>(null);
 
@@ -74,8 +76,9 @@ export default function SettingsScreen() {
 
     setSelectedDroneId(pluginId);
     setSelectedDroneName(droneName);
+    switchAdapter(pluginId);
     Alert.alert('Drone Selected', `${droneName} is now your active drone.`);
-  }, [user]);
+  }, [user, switchAdapter]);
 
   const handleWaitlist = useCallback((droneId: string) => {
     Alert.alert(

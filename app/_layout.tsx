@@ -27,6 +27,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StyleSheet } from 'react-native';
 import { Colors } from '@/theme';
 import { AuthProvider, useAuth } from '@/lib/auth';
+import { DroneProvider } from '@/store/droneStore';
 
 // Keep splash screen visible until fonts + auth load
 SplashScreen.preventAutoHideAsync();
@@ -80,7 +81,9 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={styles.root}>
       <AuthProvider>
-        <RootNavigator />
+        <DroneProvider>
+          <RootNavigator />
+        </DroneProvider>
       </AuthProvider>
     </GestureHandlerRootView>
   );

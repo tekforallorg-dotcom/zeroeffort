@@ -8,6 +8,7 @@
 import React, { createContext, useContext, useCallback, useRef, useState, useEffect } from 'react';
 import type { DronePlugin, DroneState, ConnectionStatus } from '@/plugins/interface';
 import { MockAdapter } from '@/plugins/mock/MockAdapter';
+import { SoloAdapter } from '@/plugins/solo/SoloAdapter';
 import { parseCommand, type ParsedIntent } from '@/core/intentParser';
 import { checkSafety, type SafetyResult, type GateVerdict } from '@/core/safetyGate';
 
@@ -29,6 +30,8 @@ export interface CommandEntry {
 interface DroneStore {
   /** Current drone adapter */
   drone: DronePlugin;
+  /** Active adapter ID ('mock-adapter' or '3dr-solo') */
+  activeAdapterId: string;
   /** Live telemetry (updated every 2s when connected) */
   droneState: DroneState | null;
   /** Connection status */
@@ -37,6 +40,8 @@ interface DroneStore {
   commandHistory: CommandEntry[];
   /** Whether a command is currently being processed */
   isProcessing: boolean;
+  /** Switch to a different drone adapter */
+  switchAdapter: (adapterId: string) => void;
   /** Connect to the drone */
   connectDrone: () => Promise<void>;
   /** Disconnect from the drone */
@@ -124,11 +129,40 @@ async function executeIntent(
 
 export function DroneProvider({ children }: { children: React.ReactNode }) {
   const droneRef = useRef<DronePlugin>(new MockAdapter());
+  const [activeAdapterId, setActiveAdapterId] = useState('mock-adapter');
   const [droneState, setDroneState] = useState<DroneState | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
   const [commandHistory, setCommandHistory] = useState<CommandEntry[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const telemetryTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  /** Switch the active drone adapter (disconnects current first) */
+  const switchAdapter = useCallback((adapterId: string) => {
+    // Disconnect current
+    if (droneRef.current.getConnectionStatus() === 'connected') {
+      droneRef.current.disconnect();
+    }
+    if (telemetryTimer.current) {
+      clearInterval(telemetryTimer.current);
+      telemetryTimer.current = null;
+    }
+
+    // Create new adapter
+    switch (adapterId) {
+      case '3dr-solo':
+        droneRef.current = new SoloAdapter();
+        break;
+      case 'mock-adapter':
+      default:
+        droneRef.current = new MockAdapter();
+        break;
+    }
+
+    setActiveAdapterId(adapterId);
+    setConnectionStatus('disconnected');
+    setDroneState(null);
+    console.log('[droneStore] Switched to adapter:', adapterId);
+  }, []);
 
   // Poll telemetry every 2s when connected
   const startTelemetry = useCallback(() => {
@@ -285,10 +319,12 @@ export function DroneProvider({ children }: { children: React.ReactNode }) {
 
   const value: DroneStore = {
     drone: droneRef.current,
+    activeAdapterId,
     droneState,
     connectionStatus,
     commandHistory,
     isProcessing,
+    switchAdapter,
     connectDrone,
     disconnectDrone,
     sendCommand,
