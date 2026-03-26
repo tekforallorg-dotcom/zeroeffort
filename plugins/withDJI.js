@@ -91,31 +91,30 @@ function withDJIManifest(config) {
       });
     }
 
-    // Add DJI USB Accessory Activity
-    if (!mainApp.activity) mainApp.activity = [];
-    const hasAoa = mainApp.activity.some(
-      (a) => a.$?.['android:name'] === 'dji.sdk.sdkmanager.DJIAoaControllerActivity'
-    );
-    if (!hasAoa) {
-      mainApp.activity.push({
-        $: {
-          'android:name': 'dji.sdk.sdkmanager.DJIAoaControllerActivity',
-          'android:theme': '@android:style/Theme.Translucent',
-        },
-        'intent-filter': [
-          {
-            action: [{ $: { 'android:name': 'android.hardware.usb.action.USB_ACCESSORY_ATTACHED' } }],
-          },
-        ],
-        'meta-data': [
-          {
-            $: {
-              'android:name': 'android.hardware.usb.action.USB_ACCESSORY_ATTACHED',
-              'android:resource': '@xml/accessory_filter',
-            },
-          },
-        ],
+    // Add USB accessory intent-filter to MainActivity (not DJI's missing activity)
+    // DJIAoaControllerActivity does NOT exist in SDK V4.18 - causes ClassNotFoundException
+    var mainActivity = mainApp.activity && mainApp.activity.find(function(a) {
+      return a.$ && a.$['android:name'] === '.MainActivity';
+    });
+    if (mainActivity) {
+      if (!mainActivity['intent-filter']) mainActivity['intent-filter'] = [];
+      var hasUsb = mainActivity['intent-filter'].some(function(f) {
+        return f.action && f.action.some(function(a) {
+          return a.$ && a.$['android:name'] === 'android.hardware.usb.action.USB_ACCESSORY_ATTACHED';
+        });
       });
+      if (!hasUsb) {
+        mainActivity['intent-filter'].push({
+          action: [{ $: { 'android:name': 'android.hardware.usb.action.USB_ACCESSORY_ATTACHED' } }],
+        });
+        if (!mainActivity['meta-data']) mainActivity['meta-data'] = [];
+        mainActivity['meta-data'].push({
+          $: {
+            'android:name': 'android.hardware.usb.action.USB_ACCESSORY_ATTACHED',
+            'android:resource': '@xml/accessory_filter',
+          },
+        });
+      }
     }
 
     // Add permissions
