@@ -9,6 +9,7 @@ import React, { createContext, useContext, useCallback, useRef, useState, useEff
 import type { DronePlugin, DroneState, ConnectionStatus } from '@/plugins/interface';
 import { MockAdapter } from '@/plugins/mock/MockAdapter';
 import { SoloAdapter } from '@/plugins/solo/SoloAdapter';
+import { createMini2Adapter, createMini4ProAdapter, createAir3Adapter } from '@/plugins/dji/DJIAdapter';
 import { parseCommand, type ParsedIntent } from '@/core/intentParser';
 import { checkSafety, type SafetyResult, type GateVerdict } from '@/core/safetyGate';
 
@@ -149,6 +150,16 @@ export function DroneProvider({ children }: { children: React.ReactNode }) {
 
     // Create new adapter
     switch (adapterId) {
+      case 'dji-mini-2':
+        droneRef.current = createMini2Adapter('native');
+        break;
+      case 'dji-mini-4-pro':
+        droneRef.current = createMini4ProAdapter('native');
+        break;
+      case 'dji-air-3':
+      case 'dji-air-3s':
+        droneRef.current = createAir3Adapter('native');
+        break;
       case '3dr-solo':
         droneRef.current = new SoloAdapter();
         break;

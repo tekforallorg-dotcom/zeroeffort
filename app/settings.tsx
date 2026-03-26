@@ -53,6 +53,7 @@ export default function SettingsScreen() {
 
   const handleSelectDrone = useCallback(async (pluginId: string, droneName: string) => {
     if (!user) return;
+    switchAdapter(pluginId);
 
     // Upsert: delete old selection, insert new
     await supabase
@@ -76,7 +77,6 @@ export default function SettingsScreen() {
 
     setSelectedDroneId(pluginId);
     setSelectedDroneName(droneName);
-    switchAdapter(pluginId);
     Alert.alert('Drone Selected', `${droneName} is now your active drone.`);
   }, [user, switchAdapter]);
 
