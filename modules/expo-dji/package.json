@@ -1,0 +1,11 @@
+{
+  "name": "expo-dji",
+  "version": "0.1.0",
+  "main": "index.ts",
+  "devDependencies": {
+    "expo-modules-core": "*"
+  },
+  "peerDependencies": {
+    "expo": "*"
+  }
+}
