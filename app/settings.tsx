@@ -165,7 +165,7 @@ export default function SettingsScreen() {
 
         {/* ── App Info ────────────────────────────────── */}
         <Text style={[Typography.bodySmall, styles.appInfo]}>
-          ZeroEffort v0.9.0 • Tek4All
+          ZeroEffort v1.0.0 • BUILD-2026-03-28-V2
         </Text>
       </ScrollView>
     </SafeScreen>

@@ -1,9 +1,10 @@
 {
-  "platforms": ["apple", "android", "web"],
-  "apple": {
-    "modules": ["ExpoDjiModule"]
-  },
+  "platforms": [
+    "android"
+  ],
   "android": {
-    "modules": ["expo.modules.dji.ExpoDjiModule"]
+    "modules": [
+      "expo.modules.dji.ExpoDjiModule"
+    ]
   }
 }
