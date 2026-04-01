@@ -1,0 +1,22 @@
+apply plugin: 'expo-module-gradle-plugin'
+
+android {
+  namespace "expo.modules.dji"
+  defaultConfig {
+    minSdkVersion 24
+  }
+  packagingOptions {
+    pickFirst 'lib/*/libstlport_shared.so'
+    pickFirst 'lib/*/libc++_shared.so'
+    exclude 'META-INF/rxjava.properties'
+  }
+}
+
+repositories {
+  maven { url 'https://developer.dji.com/maven/release/' }
+}
+
+dependencies {
+  implementation 'com.dji:dji-sdk:4.18'
+  compileOnly 'com.dji:dji-sdk-provided:4.18'
+}
