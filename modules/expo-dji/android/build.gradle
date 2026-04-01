@@ -4,6 +4,8 @@ android {
   namespace "expo.modules.dji"
   defaultConfig {
     minSdkVersion 24
+    versionCode 1
+    versionName "1.0.0"
   }
   packagingOptions {
     pickFirst 'lib/*/libstlport_shared.so'

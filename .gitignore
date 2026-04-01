@@ -9,7 +9,7 @@ expo-env.d.ts
 
 # Native builds
 ios/
-android/
+/android/
 
 # Environment
 .env
@@ -28,3 +28,4 @@ Thumbs.db
 
 # Supabase local
 supabase/.temp/
+!modules/**/android/
