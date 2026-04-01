@@ -1,5 +1,7 @@
 package expo.modules.dji
 
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import androidx.core.os.bundleOf
 import expo.modules.kotlin.modules.Module
@@ -38,55 +40,98 @@ class ExpoDjiModule : Module() {
     }
 
     Function("getBuildTag") {
-      return@Function "BUILD-2026-03-28-V2"
+      return@Function "BUILD-2026-04-01-V3"
     }
 
     AsyncFunction("registerSDK") { promise: Promise ->
       val context = appContext.reactContext?.applicationContext
       if (context == null) {
+        Log.e(TAG, "registerSDK: No application context")
         promise.resolve(bundleOf("success" to false, "message" to "No app context"))
         return@AsyncFunction
       }
-      Log.d(TAG, "Registering DJI SDK...")
-      DJISDKManager.getInstance().registerApp(
-        context,
-        object : DJISDKManager.SDKManagerCallback {
-          override fun onRegister(error: DJIError?) {
-            if (error == DJISDKError.REGISTRATION_SUCCESS) {
-              Log.d(TAG, "SDK registered")
-              isRegistered = true
-              DJISDKManager.getInstance().startConnectionToProduct()
-              promise.resolve(bundleOf("success" to true, "message" to "DJI SDK registered"))
-            } else {
-              val msg = error?.description ?: "Unknown error"
-              Log.e(TAG, "Registration failed: " + msg)
-              promise.resolve(bundleOf("success" to false, "message" to "Failed: " + msg))
+
+      Log.d(TAG, "registerSDK: Starting on main thread...")
+
+      // DJI SDK MUST be called on the main/UI thread
+      Handler(Looper.getMainLooper()).post {
+        try {
+          Log.d(TAG, "registerSDK: Now on main thread, calling registerApp...")
+          DJISDKManager.getInstance().registerApp(
+            context,
+            object : DJISDKManager.SDKManagerCallback {
+              override fun onRegister(error: DJIError?) {
+                if (error == DJISDKError.REGISTRATION_SUCCESS) {
+                  Log.d(TAG, "registerSDK: SUCCESS")
+                  isRegistered = true
+                  DJISDKManager.getInstance().startConnectionToProduct()
+                  promise.resolve(bundleOf("success" to true, "message" to "DJI SDK registered"))
+                } else {
+                  val msg = error?.description ?: "Unknown error"
+                  Log.e(TAG, "registerSDK: FAILED - " + msg)
+                  promise.resolve(bundleOf("success" to false, "message" to "Registration failed: " + msg))
+                }
+              }
+
+              override fun onProductDisconnect() {
+                Log.d(TAG, "Product disconnected")
+                product = null
+                aircraft = null
+                flightController = null
+                camera = null
+                sendEvent("onConnection", bundleOf("status" to "disconnected", "model" to ""))
+              }
+
+              override fun onProductConnect(p: BaseProduct?) {
+                val name = p?.model?.displayName ?: "Unknown"
+                Log.d(TAG, "Product connected: " + name)
+                product = p
+                if (p is Aircraft) {
+                  aircraft = p
+                  flightController = p.flightController
+                  camera = p.camera
+                  setupTelemetry()
+                }
+                sendEvent("onConnection", bundleOf("status" to "connected", "model" to name))
+              }
+
+              override fun onProductChanged(p: BaseProduct?) {
+                product = p
+                if (p is Aircraft) {
+                  aircraft = p
+                  flightController = p.flightController
+                  camera = p.camera
+                }
+              }
+
+              override fun onComponentChange(k: BaseProduct.ComponentKey?, o: BaseComponent?, n: BaseComponent?) {}
+              override fun onInitProcess(e: DJISDKInitEvent?, t: Int) {
+                Log.d(TAG, "SDK init: " + e.toString())
+              }
+              override fun onDatabaseDownloadProgress(c: Long, t: Long) {
+                Log.d(TAG, "DB download: " + c + "/" + t)
+              }
             }
-          }
-          override fun onProductDisconnect() {
-            product = null; aircraft = null; flightController = null; camera = null
-            sendEvent("onConnection", bundleOf("status" to "disconnected", "model" to ""))
-          }
-          override fun onProductConnect(p: BaseProduct?) {
-            val name = p?.model?.displayName ?: "Unknown"
-            Log.d(TAG, "Product connected: " + name)
-            product = p
-            if (p is Aircraft) { aircraft = p; flightController = p.flightController; camera = p.camera; setupTelemetry() }
-            sendEvent("onConnection", bundleOf("status" to "connected", "model" to name))
-          }
-          override fun onProductChanged(p: BaseProduct?) {
-            product = p
-            if (p is Aircraft) { aircraft = p; flightController = p.flightController; camera = p.camera }
-          }
-          override fun onComponentChange(k: BaseProduct.ComponentKey?, o: BaseComponent?, n: BaseComponent?) {}
-          override fun onInitProcess(e: DJISDKInitEvent?, t: Int) {}
-          override fun onDatabaseDownloadProgress(c: Long, t: Long) {}
+          )
+        } catch (e: Exception) {
+          Log.e(TAG, "registerSDK exception: " + e.message)
+          promise.resolve(bundleOf("success" to false, "message" to "Exception: " + (e.message ?: "unknown")))
         }
-      )
+      }
+
+      // Timeout after 15 seconds
+      Handler(Looper.getMainLooper()).postDelayed({
+        if (!isRegistered) {
+          Log.w(TAG, "registerSDK: 15s timeout — callback never fired")
+        }
+      }, 15000)
     }
 
     AsyncFunction("connect") { promise: Promise ->
-      if (!isRegistered) { promise.resolve(bundleOf("success" to false, "message" to "SDK not registered")); return@AsyncFunction }
+      if (!isRegistered) {
+        promise.resolve(bundleOf("success" to false, "message" to "SDK not registered"))
+        return@AsyncFunction
+      }
       if (aircraft != null && flightController != null) {
         val name = product?.model?.displayName ?: "DJI Aircraft"
         promise.resolve(bundleOf("success" to true, "message" to name + " connected"))
@@ -129,12 +174,14 @@ class ExpoDjiModule : Module() {
     }
 
     AsyncFunction("startVideo") { promise: Promise ->
-      val cam = camera ?: run { promise.resolve(bundleOf("success" to false, "message" to "No camera")); return@AsyncFunction }
+      val cam = camera
+      if (cam == null) { promise.resolve(bundleOf("success" to false, "message" to "No camera")); return@AsyncFunction }
       cam.startRecordVideo { e -> promise.resolve(bundleOf("success" to (e == null), "message" to if (e == null) "Recording" else "Failed")) }
     }
 
     AsyncFunction("stopVideo") { promise: Promise ->
-      val cam = camera ?: run { promise.resolve(bundleOf("success" to false, "message" to "No camera")); return@AsyncFunction }
+      val cam = camera
+      if (cam == null) { promise.resolve(bundleOf("success" to false, "message" to "No camera")); return@AsyncFunction }
       cam.stopRecordVideo { e -> promise.resolve(bundleOf("success" to (e == null), "message" to if (e == null) "Stopped" else "Failed")) }
     }
 
